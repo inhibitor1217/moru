@@ -18,14 +18,5 @@ type Beacon interface {
 	Send(ctx context.Context, msg []byte) error
 
 	// Receive blocks until a message is received or the context is cancelled.
-	Receive(ctx context.Context) (Message, error)
-}
-
-// Message represents a received UDP message.
-type Message struct {
-	// Data is the raw message payload.
-	Data []byte
-
-	// From is the source address of the message.
-	From net.Addr
+	Receive(ctx context.Context) ([]byte, net.Addr, error)
 }
