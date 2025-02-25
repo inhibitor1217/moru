@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package io.inhibitor.moru.discovery;
+option go_package = "github.com/inhibitor1217/moru/internal/lib/discovery/proto";
+
+// Message represents a message broadcasted by a peer.
+message Message {
+
+}
