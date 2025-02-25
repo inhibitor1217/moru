@@ -2,6 +2,7 @@ package beacon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -37,6 +38,8 @@ type udpBroadcast struct {
 
 	sendWg sync.WaitGroup
 	recvWg sync.WaitGroup
+
+	log *slog.Logger
 }
 
 type udpRecv struct {
@@ -64,6 +67,8 @@ func NewUDPBroadcast(cfg UDPBroadcastConfig) (Beacon, error) {
 		inbox:  make(chan []byte),
 		outbox: make(chan udpRecv, 64),
 		stop:   make(chan struct{}),
+
+		log: slog.Default().With("source", "beacon"),
 	}, nil
 }
 
@@ -133,12 +138,12 @@ func (b *udpBroadcast) Receive(ctx context.Context) ([]byte, net.Addr, error) {
 func (b *udpBroadcast) senderLoop(ctx context.Context) {
 	defer b.sendWg.Done()
 
-	slog.InfoContext(ctx, "starting UDP broadcast sender loop")
-	defer slog.InfoContext(ctx, "stopping UDP broadcast sender loop")
+	b.log.InfoContext(ctx, "starting UDP broadcast sender loop")
+	defer b.log.InfoContext(ctx, "stopping UDP broadcast sender loop")
 
 	conn, err := net.ListenUDP("udp4", nil)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to listen UDP", "error", err)
+		b.log.ErrorContext(ctx, "failed to listen UDP", "error", err)
 		return
 	}
 	defer conn.Close()
@@ -152,11 +157,11 @@ func (b *udpBroadcast) senderLoop(ctx context.Context) {
 			_ = conn.SetWriteDeadline(time.Time{})
 
 			if err != nil {
-				slog.ErrorContext(ctx, "failed to broadcast message", "error", err)
+				b.log.ErrorContext(ctx, "failed to broadcast message", "error", err)
 				continue
 			}
 
-			slog.DebugContext(ctx, "sent UDP broadcast message", "addr", dst, "size", len(msg))
+			b.log.DebugContext(ctx, "sent UDP broadcast message", "addr", dst, "size", len(msg))
 		case <-b.stop:
 			return
 		case <-ctx.Done():
@@ -168,26 +173,35 @@ func (b *udpBroadcast) senderLoop(ctx context.Context) {
 func (b *udpBroadcast) receiverLoop(ctx context.Context) {
 	defer b.recvWg.Done()
 
-	slog.InfoContext(ctx, "starting UDP broadcast receiver loop")
-	defer slog.InfoContext(ctx, "stopping UDP broadcast receiver loop")
+	b.log.InfoContext(ctx, "starting UDP broadcast receiver loop")
+	defer b.log.InfoContext(ctx, "stopping UDP broadcast receiver loop")
 
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: b.cfg.Port})
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to listen UDP", "error", err)
+		b.log.ErrorContext(ctx, "failed to listen UDP", "error", err)
 		return
 	}
-	defer conn.Close()
+
+	// separate goroutine for stop signal
+	go func() {
+		<-b.stop
+		_ = conn.Close() // this will interrupt conn.ReadFrom
+	}()
 
 	bs := make([]byte, 65536)
 	for {
 		n, addr, err := conn.ReadFrom(bs)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to receive message", "error", err)
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+
+			b.log.ErrorContext(ctx, "failed to receive message", "error", err)
 			time.Sleep(1 * time.Second)
 			continue
 		}
 
-		slog.DebugContext(ctx, "received UDP broadcast message", "addr", addr, "size", n)
+		b.log.DebugContext(ctx, "received UDP broadcast message", "addr", addr, "size", n)
 
 		buf := make([]byte, n)
 		copy(buf, bs[:n])
