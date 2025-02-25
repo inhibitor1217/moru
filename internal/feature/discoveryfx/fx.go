@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/inhibitor1217/moru/internal/env"
+	"github.com/inhibitor1217/moru/internal/feature/discovery"
 	"github.com/inhibitor1217/moru/internal/lib/beacon"
 	"go.uber.org/fx"
 )
@@ -25,6 +26,19 @@ var Module = fx.Module(
 			},
 			OnStop: func(ctx context.Context) error {
 				return b.Stop(ctx)
+			},
+		})
+	}),
+
+	// LAN discovery service
+	fx.Provide(discovery.NewLocalDiscoverySvc),
+	fx.Invoke(func(lc fx.Lifecycle, s discovery.DiscoverySvc) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				return s.Start(ctx)
+			},
+			OnStop: func(ctx context.Context) error {
+				return s.Stop(ctx)
 			},
 		})
 	}),

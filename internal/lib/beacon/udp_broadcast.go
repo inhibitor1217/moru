@@ -68,7 +68,7 @@ func NewUDPBroadcast(cfg UDPBroadcastConfig) (Beacon, error) {
 		outbox: make(chan udpRecv, 64),
 		stop:   make(chan struct{}),
 
-		log: slog.Default().With("source", "beacon"),
+		log: slog.Default().With("source", "beacon.udpBroadcast"),
 	}, nil
 }
 
@@ -82,6 +82,8 @@ func (b *udpBroadcast) Start(ctx context.Context) error {
 		return fmt.Errorf("beacon already stopped")
 	}
 	b.started = true
+
+	b.log.InfoContext(ctx, "starting UDP broadcast beacon")
 
 	bgCtx := context.WithoutCancel(ctx)
 
@@ -104,6 +106,8 @@ func (b *udpBroadcast) Stop(ctx context.Context) error {
 		return fmt.Errorf("beacon already stopped")
 	}
 	b.stopped = true
+
+	b.log.InfoContext(ctx, "stopping UDP broadcast beacon")
 
 	close(b.stop)
 
