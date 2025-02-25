@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/spf13/viper v1.19.0
 	go.uber.org/fx v1.23.0
+	google.golang.org/protobuf v1.36.5
 )
 
 require (

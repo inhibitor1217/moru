@@ -12,6 +12,7 @@ set -e
 printf "Running pre-commit checks...\n"
 
 ${MAKE} test
+${MAKE} generate
 ${MAKE} fmt
 ${MAKE} lint
 

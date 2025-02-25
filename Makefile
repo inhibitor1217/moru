@@ -50,6 +50,9 @@ run:
 
 dev: build run
 
+generate:
+	${GO} generate ./...
+
 clean:
 	rm -rf ${TARGET_DIR}
 
