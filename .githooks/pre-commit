@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+
+# This is a pre-commit hook that runs the tests and checks before a commit is
+# made. If any of the tests or checks fail, the commit is aborted.
+
+MAKE=$(which make)
+GO=$(which go)
+GOIMPORTS=$(which goimports)
+
+set -e
+
+printf "Running pre-commit checks...\n"
+
+${MAKE} test
+${MAKE} fmt
+${MAKE} lint
+
+git add .
