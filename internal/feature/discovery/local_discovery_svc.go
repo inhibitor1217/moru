@@ -14,12 +14,14 @@ import (
 
 const (
 	BroadcastInterval = 30 * time.Second
+	AnnouncementTTL   = 3 * BroadcastInterval
 )
 
 // localDiscoverySvc is a DiscoverySvc that works in LAN.
 type localDiscoverySvc struct {
 	myID        PeerID
 	mySessionID int64
+	membership  *membership
 
 	started            bool
 	stopped            bool
@@ -43,6 +45,7 @@ func NewLocalDiscoverySvc(beacon beacon.Beacon) (DiscoverySvc, error) {
 	return &localDiscoverySvc{
 		myID:        myID,
 		mySessionID: mySessionID,
+		membership:  newMembership(),
 
 		stop: make(chan struct{}),
 
@@ -101,7 +104,7 @@ func (s *localDiscoverySvc) Stop(ctx context.Context) error {
 }
 
 func (s *localDiscoverySvc) KnownPeers() []Peer {
-	return nil
+	return s.membership.Peers()
 }
 
 func (s *localDiscoverySvc) Refresh(ctx context.Context) error {
@@ -202,9 +205,17 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 		"remote.peerID", remotePeerID,
 		"remote.sessionID", msg.SessionId)
 
-	// skip broadcasted message from myself
-	if remotePeerID == s.myID {
-		return nil
+	switch payload := msg.Payload.(type) {
+	case *discovery.Message_Announcement:
+		peer := Peer{
+			ID:        remotePeerID,
+			SessionID: msg.SessionId,
+			Address:   payload.Announcement.Address,
+			FoundAt:   time.Now(),
+			ExpireAt:  time.Now().Add(AnnouncementTTL),
+		}
+		s.membership.Discover(peer)
+		s.log.DebugContext(ctx, "discovered peer", "peer", peer, "membership.size", s.membership.Size())
 	}
 
 	return nil
