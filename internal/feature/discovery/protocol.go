@@ -35,17 +35,15 @@ func parsePacket(buf []byte) (*discovery.Message, error) {
 	return msg, nil
 }
 
-func announcementPacket(
-	id PeerID,
-	sessionID int64,
-	address string,
-) []byte {
+func announcementPacket(peer Peer) []byte {
 	return makePacket(&discovery.Message{
-		Id:        id[:],
-		SessionId: sessionID,
+		Id:        peer.ID[:],
+		SessionId: peer.SessionID,
 		Payload: &discovery.Message_Announcement{
 			Announcement: &discovery.Announcement{
-				Address: address,
+				Address:  peer.Address,
+				Username: peer.Username,
+				Hostname: peer.Hostname,
 			},
 		},
 	})

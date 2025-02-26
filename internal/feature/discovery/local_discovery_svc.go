@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/user"
 	"sync"
 	"time"
 
 	"github.com/inhibitor1217/moru/internal/lib/beacon"
 	"github.com/inhibitor1217/moru/proto/discovery"
+	"github.com/samber/lo"
 )
 
 const (
@@ -19,9 +22,8 @@ const (
 
 // localDiscoverySvc is a DiscoverySvc that works in LAN.
 type localDiscoverySvc struct {
-	myID        PeerID
-	mySessionID int64
-	membership  *membership
+	me         Peer
+	membership *membership
 
 	started            bool
 	stopped            bool
@@ -39,13 +41,21 @@ type localDiscoverySvc struct {
 
 // NewLocalDiscoverySvc creates a new DiscoverySvc that works in LAN.
 func NewLocalDiscoverySvc(beacon beacon.Beacon) (DiscoverySvc, error) {
-	myID := randomPeerID()
-	mySessionID := randomSessionID()
+	me := Peer{}
+
+	me.ID = randomPeerID()
+	me.SessionID = randomSessionID()
+	// TODO me.Address
+	if osUser, err := user.Current(); err == nil {
+		me.Username = &osUser.Username
+	}
+	if hostname, err := os.Hostname(); err == nil {
+		me.Hostname = &hostname
+	}
 
 	return &localDiscoverySvc{
-		myID:        myID,
-		mySessionID: mySessionID,
-		membership:  newMembership(),
+		me:         me,
+		membership: newMembership(),
 
 		stop: make(chan struct{}),
 
@@ -69,8 +79,10 @@ func (s *localDiscoverySvc) Start(ctx context.Context) error {
 	s.started = true
 
 	s.log.Info("starting LAN discovery service",
-		"myID", s.myID,
-		"mySessionID", s.mySessionID)
+		"me.id", s.me.ID,
+		"me.sessionID", s.me.SessionID,
+		"me.username", lo.FromPtr(s.me.Username),
+		"me.hostname", lo.FromPtr(s.me.Hostname))
 
 	bgCtx := context.WithoutCancel(ctx)
 
@@ -141,7 +153,7 @@ func (s *localDiscoverySvc) announcementLoop(ctx context.Context) {
 }
 
 func (s *localDiscoverySvc) announce(ctx context.Context) error {
-	pkt := announcementPacket(s.myID, s.mySessionID, "") // TODO fill out TCP address
+	pkt := announcementPacket(s.me)
 	return s.beacon.Send(ctx, pkt)
 }
 
@@ -211,11 +223,18 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			ID:        remotePeerID,
 			SessionID: msg.SessionId,
 			Address:   payload.Announcement.Address,
+			Username:  payload.Announcement.Username,
+			Hostname:  payload.Announcement.Hostname,
 			FoundAt:   time.Now(),
 			ExpireAt:  time.Now().Add(AnnouncementTTL),
 		}
 		s.membership.Discover(peer)
-		s.log.DebugContext(ctx, "discovered peer", "peer", peer, "membership.size", s.membership.Size())
+		s.log.DebugContext(ctx, "discovered peer",
+			"peer.id", peer.ID,
+			"peer.address", peer.Address,
+			"peer.username", lo.FromPtr(peer.Username),
+			"peer.hostname", lo.FromPtr(peer.Hostname),
+			"membership.size", s.membership.Size())
 	}
 
 	return nil

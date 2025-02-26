@@ -48,6 +48,8 @@ type Peer struct {
 	ID        PeerID    // Unique identifier of the peer device.
 	SessionID int64     // Randomly generated session ID. We can identify whether the peer process restarted by this.
 	Address   string    // IP address of the peer device.
+	Username  *string   // Username of the peer device.
+	Hostname  *string   // Hostname of the peer device.
 	FoundAt   time.Time // Time when the peer was discovered.
 	ExpireAt  time.Time // Time when the peer will be removed from the known peers list.
 }
