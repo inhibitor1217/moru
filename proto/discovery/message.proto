@@ -6,7 +6,7 @@ option go_package = "github.com/inhibitor1217/moru/proto/discovery";
 // Message represents a message broadcasted by a peer.
 message Message {
     bytes id = 1; // Peer ID.
-    string session_id = 2; // Session ID.
+    int64 session_id = 2; // Session ID.
     reserved 3 to 9; // Reserved for future use.
 
     oneof payload {
