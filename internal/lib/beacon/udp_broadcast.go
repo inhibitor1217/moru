@@ -124,7 +124,7 @@ func (b *udpBroadcast) Send(ctx context.Context, msg []byte) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-b.stop:
-		return fmt.Errorf("beacon already stopped")
+		return ErrBeaconStopped
 	}
 }
 
@@ -135,7 +135,7 @@ func (b *udpBroadcast) Receive(ctx context.Context) ([]byte, net.Addr, error) {
 	case <-ctx.Done():
 		return nil, nil, ctx.Err()
 	case <-b.stop:
-		return nil, nil, fmt.Errorf("beacon already stopped")
+		return nil, nil, ErrBeaconStopped
 	}
 }
 

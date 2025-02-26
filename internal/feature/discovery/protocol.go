@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"github.com/inhibitor1217/moru/proto/discovery"
 	"google.golang.org/protobuf/proto"
@@ -18,6 +19,20 @@ func makePacket(msg proto.Message) []byte {
 	binary.BigEndian.PutUint32(buf, magic)
 	copy(buf[4:], bs)
 	return buf
+}
+
+func parsePacket(buf []byte) (*discovery.Message, error) {
+	if len(buf) < 4 {
+		return nil, errors.New("packet too short")
+	}
+	if binary.BigEndian.Uint32(buf) != magic {
+		return nil, errors.New("invalid magic number")
+	}
+	msg := &discovery.Message{}
+	if err := proto.Unmarshal(buf[4:], msg); err != nil {
+		return nil, err
+	}
+	return msg, nil
 }
 
 func announcementPacket(

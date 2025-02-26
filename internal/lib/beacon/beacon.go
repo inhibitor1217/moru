@@ -2,7 +2,13 @@ package beacon
 
 import (
 	"context"
+	"errors"
 	"net"
+)
+
+var (
+	// ErrBeaconStopped is returned when the beacon is stopped.
+	ErrBeaconStopped = errors.New("beacon stopped")
 )
 
 // Beacon is a service that broadcasts and receives UDP messages on a local network.

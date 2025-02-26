@@ -3,6 +3,7 @@ package discovery
 import (
 	"crypto/rand"
 	"encoding/base32"
+	"errors"
 	"strings"
 	"time"
 	"unsafe"
@@ -14,6 +15,16 @@ import (
 // with private key which SHA-256 hash is equal to PeerID.
 // For now, we skip the certificate part and use a random string as PeerID.
 type PeerID [32]byte
+
+// PeerIDFromBytes creates a PeerID from the given byte slice.
+func PeerIDFromBytes(bs []byte) (PeerID, error) {
+	if len(bs) != 32 {
+		return PeerID{}, errors.New("invalid PeerID length")
+	}
+	var id PeerID
+	copy(id[:], bs)
+	return id, nil
+}
 
 func (id PeerID) String() string {
 	s := base32.StdEncoding.EncodeToString(id[:])
