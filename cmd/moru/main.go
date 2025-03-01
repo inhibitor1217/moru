@@ -1,35 +1,10 @@
 package main
 
-import (
-	"log/slog"
+import "C"
 
-	"github.com/inhibitor1217/moru/internal/env"
-	"github.com/inhibitor1217/moru/internal/envfx"
-	"github.com/inhibitor1217/moru/internal/feature/corefx"
-	"github.com/inhibitor1217/moru/internal/feature/discoveryfx"
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
-)
-
-func main() {
-	fx.New(
-		fx.WithLogger(func() fxevent.Logger {
-			return fxevent.NopLogger
-		}),
-
-		envfx.Option,
-
-		corefx.Module,
-		discoveryfx.Module,
-
-		fx.Invoke(logStart),
-	).Run()
+//export sum
+func sum(a, b C.int) C.int {
+	return a + b
 }
 
-func logStart(cfg *env.Config) {
-	slog.Default().
-		WithGroup("application").
-		With("name", cfg.Application.Name).
-		With("stage", cfg.Application.Stage).
-		Info("running")
-}
+func main() {}

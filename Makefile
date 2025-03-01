@@ -8,7 +8,7 @@ PROJECT_NAME := $(shell basename $(PROJECT_ROOT))
 TARGET_DIR := $(PROJECT_ROOT)/build
 
 # Application
-TARGET ?= moru
+TARGET ?= morusrv
 STAGE ?= dev
 VERSION := $(shell git describe --exact-match --tags HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD)
 
@@ -18,6 +18,10 @@ GOVERSION := $(shell go version | awk '{print $$3}')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 LDFLAGS := -ldflags=""
+
+# Android (for cross-compilation)
+ANDROID_SDK ?= $(HOME)/Library/Android/sdk
+NDK_BIN ?= $(ANDROID_SDK)/ndk/28.0.13004108/toolchains/llvm/prebuilt/darwin-x86_64/bin
 
 # ------------------------------------------------------------------------------
 # Build Targets
@@ -45,10 +49,40 @@ build: init
 		-o ${TARGET_DIR}/${TARGET}.${GOOS}.${GOARCH} \
 		${PROJECT_ROOT}/cmd/${TARGET}
 
+build-so-android: build-so-android-x86_64 build-so-android-arm64
+
+build-so-android-x86_64: init
+	CGO_ENABLED=1 \
+	GOOS=android \
+	GOARCH=amd64 \
+	CC=${NDK_BIN}/x86_64-linux-android35-clang \
+	${GO} build ${LDFLAGS} \
+		-buildmode=c-shared \
+		-o ${TARGET_DIR}/jniLibs/x86_64/lib${TARGET}.so \
+		${PROJECT_ROOT}/cmd/${TARGET}
+
+build-so-android-arm64: init
+	CGO_ENABLED=1 \
+	GOOS=android \
+	GOARCH=arm64 \
+	CC=${NDK_BIN}/aarch64-linux-android35-clang \
+	${GO} build ${LDFLAGS} \
+		-buildmode=c-shared \
+		-o ${TARGET_DIR}/jniLibs/arm64-v8a/lib${TARGET}.so \
+		${PROJECT_ROOT}/cmd/${TARGET}
+
+# ------------------------------------------------------------------------------
+# Development Tools
+# ------------------------------------------------------------------------------
+
 run:
 	${TARGET_DIR}/${TARGET}.${GOOS}.${GOARCH}
 
 dev: build run
+
+# ------------------------------------------------------------------------------
+# Utilities
+# ------------------------------------------------------------------------------
 
 generate:
 	${GO} generate ./...
