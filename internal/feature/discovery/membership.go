@@ -39,6 +39,11 @@ func (m *membership) Peers() []Peer {
 }
 
 func (m *membership) Size() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.flush()
+
 	return len(m.peers)
 }
 

@@ -14,6 +14,10 @@ import (
 
 	"github.com/inhibitor1217/moru/internal/env"
 	"github.com/inhibitor1217/moru/internal/envfx"
+	"github.com/inhibitor1217/moru/internal/feature/corefx"
+	"github.com/inhibitor1217/moru/internal/feature/discovery"
+	"github.com/inhibitor1217/moru/internal/feature/discoveryfx"
+	"github.com/inhibitor1217/moru/internal/lib/slogutil"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 )
@@ -22,25 +26,8 @@ type moru struct {
 	mu sync.Mutex
 
 	app     *fx.App
-	log     C.log_write_t
+	logger  *nativeLogger
 	started bool
-}
-
-func (m *moru) Write(bs []byte) (int, error) {
-	if m.log == nil {
-		return len(bs), nil
-	}
-
-	if len(bs) == 0 {
-		return 0, nil
-	}
-
-	p := C.CBytes(bs)
-	// we cannot free the memory when this function returns, since
-	// the memory is still being used asynchronously by the native code.
-
-	C.bridge_log_write(m.log, p, C.int(len(bs)))
-	return len(bs), nil
 }
 
 var m = &moru{}
@@ -54,14 +41,25 @@ func moru_init() {
 		return
 	}
 
+	m.logger = newNativeLogger()
+
 	m.app = fx.New(
 		fx.WithLogger(func() fxevent.Logger {
 			return fxevent.NopLogger
 		}),
 
+		fx.Invoke(func(cfg *env.Config) {
+			slog.SetDefault(slog.New(slog.NewTextHandler(m.logger, &slog.HandlerOptions{
+				Level: slogutil.LogLevel(cfg.Log.Level),
+			})))
+		}),
+
 		envfx.Option,
 
-		fx.Invoke(func(lc fx.Lifecycle, cfg *env.Config) {
+		corefx.Module,
+		discoveryfx.Module,
+
+		fx.Invoke(func(lc fx.Lifecycle, cfg *env.Config, discoverySvc discovery.DiscoverySvc) {
 			lc.Append(fx.Hook{
 				OnStart: func(context.Context) error {
 					logStart(cfg)
@@ -70,8 +68,6 @@ func moru_init() {
 			})
 		}),
 	)
-
-	slog.SetDefault(slog.New(slog.NewTextHandler(m, nil)))
 }
 
 //export moru_run
@@ -99,7 +95,7 @@ func moru_register_logger(fn C.log_write_t) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.log = fn
+	m.logger.Bind(fn)
 }
 
 //export moru_log_ack
