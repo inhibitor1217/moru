@@ -10,7 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/inhibitor1217/moru/internal/env"
 	"github.com/inhibitor1217/moru/internal/lib/beacon"
+	"github.com/inhibitor1217/moru/internal/lib/network"
 	"github.com/inhibitor1217/moru/proto/discovery"
 	"github.com/samber/lo"
 )
@@ -40,12 +42,22 @@ type localDiscoverySvc struct {
 }
 
 // NewLocalDiscoverySvc creates a new DiscoverySvc that works in LAN.
-func NewLocalDiscoverySvc(beacon beacon.Beacon) (DiscoverySvc, error) {
+func NewLocalDiscoverySvc(
+	beacon beacon.Beacon,
+	cfg *env.Config,
+) (DiscoverySvc, error) {
 	me := Peer{}
+	listeningIPs := network.LANAddresses()
+	var advertisedAddress string
+	if cfg.Application.Role == env.RoleHost && len(listeningIPs) > 0 {
+		advertisedIP := listeningIPs[0]
+		// TODO support HTTPS via self-signed certificate
+		advertisedAddress = fmt.Sprintf("http://%s:%d", advertisedIP, cfg.HTTP.Port)
+	}
 
 	me.ID = randomPeerID()
 	me.SessionID = randomSessionID()
-	// TODO me.Address
+	me.Address = advertisedAddress
 	if osUser, err := user.Current(); err == nil {
 		me.Username = &osUser.Username
 	}

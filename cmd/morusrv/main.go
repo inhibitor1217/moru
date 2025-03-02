@@ -32,6 +32,7 @@ func logStart(cfg *env.Config) {
 	slog.Default().
 		WithGroup("application").
 		With("name", cfg.Application.Name).
+		With("role", cfg.Application.Role).
 		With("stage", cfg.Application.Stage).
 		Info("running")
 }

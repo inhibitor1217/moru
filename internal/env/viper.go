@@ -12,6 +12,7 @@ const (
 
 func init() {
 	viper.SetDefault("application.name", "moru")
+	viper.SetDefault("application.role", "host")
 	viper.SetDefault("application.stage", "dev")
 	viper.SetDefault("log.level", "debug")
 	viper.SetDefault("discovery.port", 32516)

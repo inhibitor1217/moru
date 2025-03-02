@@ -3,6 +3,7 @@ package env
 type Config struct {
 	Application struct {
 		Name  string
+		Role  Role
 		Stage Stage
 	}
 	Discovery struct {
@@ -25,4 +26,15 @@ const (
 
 func (s Stage) String() string {
 	return string(s)
+}
+
+type Role string
+
+const (
+	RoleHost Role = "host"
+	RolePeer Role = "peer"
+)
+
+func (r Role) String() string {
+	return string(r)
 }
