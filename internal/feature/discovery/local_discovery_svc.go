@@ -234,10 +234,10 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 		peer := Peer{
 			ID:        remotePeerID,
 			SessionID: msg.SessionId,
-			Address:   payload.Announcement.Address,
-			Username:  payload.Announcement.Username,
-			Hostname:  payload.Announcement.Hostname,
-			Role:      payload.Announcement.Role,
+			Address:   payload.Announcement.Peer.Address,
+			Username:  payload.Announcement.Peer.Username,
+			Hostname:  payload.Announcement.Peer.Hostname,
+			Role:      payload.Announcement.Peer.Role,
 			FoundAt:   time.Now(),
 			ExpireAt:  time.Now().Add(AnnouncementTTL),
 		}

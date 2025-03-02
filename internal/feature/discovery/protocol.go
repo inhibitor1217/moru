@@ -41,10 +41,12 @@ func announcementPacket(peer Peer) []byte {
 		SessionId: peer.SessionID,
 		Payload: &discovery.Message_Announcement{
 			Announcement: &discovery.Announcement{
-				Address:  peer.Address,
-				Username: peer.Username,
-				Hostname: peer.Hostname,
-				Role:     peer.Role,
+				Peer: &discovery.Peer{
+					Address:  peer.Address,
+					Username: peer.Username,
+					Hostname: peer.Hostname,
+					Role:     peer.Role,
+				},
 			},
 		},
 	})
