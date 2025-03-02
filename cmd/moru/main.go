@@ -10,7 +10,6 @@ import (
 	"context"
 	"log/slog"
 	"sync"
-	"unsafe"
 
 	"github.com/inhibitor1217/moru/internal/env"
 	"github.com/inhibitor1217/moru/internal/envfx"
@@ -96,11 +95,6 @@ func moru_register_logger(fn C.log_write_t) {
 	defer m.mu.Unlock()
 
 	m.logger.Bind(fn)
-}
-
-//export moru_log_ack
-func moru_log_ack(msg unsafe.Pointer) {
-	C.free(msg)
 }
 
 func logStart(cfg *env.Config) {
