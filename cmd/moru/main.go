@@ -111,7 +111,16 @@ func moru_known_peers(req C.ffi_t) C.ffi_t {
 		return C.ffi_t{}
 	}
 
-	res := knownPeers(C.GoBytes(req.data, C.int(req.len)))
+	if req.data == nil {
+		return C.ffi_t{}
+	}
+
+	res := m.knownPeers(C.GoBytes(req.data, C.int(req.len)))
+
+	if res == nil {
+		return C.ffi_t{}
+	}
+
 	return C.ffi_t{data: C.CBytes(res), len: C.int(len(res))}
 }
 
