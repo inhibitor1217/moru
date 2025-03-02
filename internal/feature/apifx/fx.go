@@ -6,6 +6,7 @@ import (
 	stdHTTP "net/http"
 	"time"
 
+	apiHTTP "github.com/inhibitor1217/moru/api/http"
 	"github.com/inhibitor1217/moru/internal/env"
 	"github.com/inhibitor1217/moru/internal/lib/http"
 	"go.uber.org/fx"
@@ -46,4 +47,6 @@ var Module = fx.Module(
 
 	// require *http.Server to be injected
 	fx.Invoke(func(*http.Server) {}),
+
+	apiHTTP.Option,
 )
