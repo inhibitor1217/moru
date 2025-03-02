@@ -172,10 +172,7 @@ func (s *localDiscoverySvc) listenerLoop(ctx context.Context) {
 		default:
 		}
 
-		cancelCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
-		defer cancel()
-
-		pkt, remoteAddress, err := s.beacon.Receive(cancelCtx)
+		pkt, remoteAddress, err := s.beacon.Receive(ctx)
 		if err != nil {
 			if errors.Is(err, beacon.ErrBeaconStopped) {
 				return

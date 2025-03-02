@@ -48,9 +48,6 @@ func (m *membership) Size() int {
 }
 
 func (m *membership) flush() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	for id, peer := range m.peers {
 		if peer.ExpireAt.Before(time.Now()) {
 			delete(m.peers, id)
