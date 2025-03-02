@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 
 	discoverypb "github.com/inhibitor1217/moru/proto/discovery"
 	"google.golang.org/protobuf/proto"
 )
 
-func (m *moru) knownPeers(reqBuf []byte) []byte {
+func (m *moru) knownPeers(
+	_ context.Context,
+	log *slog.Logger,
+	reqBuf []byte,
+) []byte {
 	req := &discoverypb.KnownPeersRequest{}
 	if err := proto.Unmarshal(reqBuf, req); err != nil {
-		slog.Error("failed to unmarshal known peers request",
+		log.Error("failed to unmarshal known peers request",
 			"error", err)
 		return nil
 	}
@@ -30,7 +35,7 @@ func (m *moru) knownPeers(reqBuf []byte) []byte {
 	}
 	resBuf, err := proto.Marshal(res)
 	if err != nil {
-		slog.Error("failed to marshal known peers result",
+		log.Error("failed to marshal known peers result",
 			"error", err)
 	}
 

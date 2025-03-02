@@ -80,10 +80,12 @@ func moru_run() {
 	defer m.mu.Unlock()
 
 	if m.app == nil {
+		slog.Warn("moru not initialized. moru_init() must be called first")
 		return
 	}
 
 	if m.started {
+		slog.Warn("moru already started")
 		return
 	}
 
@@ -107,17 +109,23 @@ func moru_known_peers(req C.ffi_t) C.ffi_t {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	ctx := context.Background()
+	log := slog.Default().With("entrypoint", "moru_known_peers")
+
 	if m.app == nil {
+		log.Warn("moru not initialized. moru_init() must be called first")
 		return C.ffi_t{}
 	}
 
 	if req.data == nil {
+		log.Warn("invalid request: empty data buffer")
 		return C.ffi_t{}
 	}
 
-	res := m.knownPeers(C.GoBytes(req.data, C.int(req.len)))
+	res := m.knownPeers(ctx, log, C.GoBytes(req.data, C.int(req.len)))
 
 	if res == nil {
+		log.Warn("failed to process request")
 		return C.ffi_t{}
 	}
 
