@@ -8,6 +8,9 @@ type Config struct {
 	Discovery struct {
 		Port int
 	}
+	HTTP struct {
+		Port int
+	}
 	Log struct {
 		Level string
 	}

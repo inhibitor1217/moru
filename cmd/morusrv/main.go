@@ -5,6 +5,7 @@ import (
 
 	"github.com/inhibitor1217/moru/internal/env"
 	"github.com/inhibitor1217/moru/internal/envfx"
+	"github.com/inhibitor1217/moru/internal/feature/apifx"
 	"github.com/inhibitor1217/moru/internal/feature/corefx"
 	"github.com/inhibitor1217/moru/internal/feature/discoveryfx"
 	"go.uber.org/fx"
@@ -19,6 +20,7 @@ func main() {
 
 		envfx.Option,
 
+		apifx.Module,
 		corefx.Module,
 		discoveryfx.Module,
 

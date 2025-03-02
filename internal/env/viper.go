@@ -15,6 +15,7 @@ func init() {
 	viper.SetDefault("application.stage", "dev")
 	viper.SetDefault("log.level", "debug")
 	viper.SetDefault("discovery.port", 32516)
+	viper.SetDefault("http.port", 5623)
 
 	viper.SetEnvPrefix(envPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
