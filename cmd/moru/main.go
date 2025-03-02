@@ -4,6 +4,11 @@ package main
 //
 // typedef void (*log_write_t)(const void* msg, int len);
 // void bridge_log_write(log_write_t f, const void* msg, int len);
+//
+// typedef struct {
+//     const void* data;
+//     int len;
+// } ffi_t;
 import "C"
 
 import (
@@ -95,6 +100,19 @@ func moru_register_logger(fn C.log_write_t) {
 	defer m.mu.Unlock()
 
 	m.logger.Bind(fn)
+}
+
+//export moru_known_peers
+func moru_known_peers(req C.ffi_t) C.ffi_t {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.app == nil {
+		return C.ffi_t{}
+	}
+
+	res := knownPeers(C.GoBytes(req.data, C.int(req.len)))
+	return C.ffi_t{data: C.CBytes(res), len: C.int(len(res))}
 }
 
 func logStart(cfg *env.Config) {
