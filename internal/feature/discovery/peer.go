@@ -43,6 +43,10 @@ func (id PeerID) String() string {
 	return chunked
 }
 
+func (id PeerID) Bytes() []byte {
+	return id[:]
+}
+
 // Peer is a metadata of a peer on the network.
 type Peer struct {
 	ID        PeerID    // Unique identifier of the peer device.

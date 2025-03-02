@@ -20,19 +20,22 @@ func (m *moru) knownPeers(
 		return nil
 	}
 
-	// TODO implement
+	knownPeers := m.discoverySvc.KnownPeers()
+
 	res := &discoverypb.KnownPeersResult{
-		Peers: []*discoverypb.Peer{
-			{
-				Id:        []byte("peer1"),
-				SessionId: 42,
-				Address:   "",
-				Username:  nil,
-				Hostname:  nil,
-				Role:      "peer",
-			},
-		},
+		Peers: make([]*discoverypb.Peer, 0, len(knownPeers)),
 	}
+	for _, peer := range knownPeers {
+		res.Peers = append(res.Peers, &discoverypb.Peer{
+			Id:        peer.ID.Bytes(),
+			SessionId: peer.SessionID,
+			Address:   peer.Address,
+			Username:  peer.Username,
+			Hostname:  peer.Hostname,
+			Role:      peer.Role,
+		})
+	}
+
 	resBuf, err := proto.Marshal(res)
 	if err != nil {
 		log.Error("failed to marshal known peers result",

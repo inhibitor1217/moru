@@ -32,6 +32,8 @@ type moru struct {
 	app     *fx.App
 	logger  *nativeLogger
 	started bool
+
+	discoverySvc discovery.DiscoverySvc
 }
 
 var m = &moru{}
@@ -71,6 +73,8 @@ func moru_init() {
 				},
 			})
 		}),
+
+		fx.Populate(&m.discoverySvc),
 	)
 }
 
