@@ -1,0 +1,3 @@
+[submodule "moru-proto"]
+	path = moru-proto
+	url = git@github.com:inhibitor1217/moru-proto.git

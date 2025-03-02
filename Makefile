@@ -84,8 +84,16 @@ dev: build run
 # Utilities
 # ------------------------------------------------------------------------------
 
-generate:
+generate: generate-go generate-proto
+
+generate-go:
 	${GO} generate ./...
+
+generate-proto:
+	protoc -I ./moru-proto \
+		--go_out=proto \
+		--go_opt=module=github.com/inhibitor1217/moru/proto \
+		./moru-proto/**/*.proto
 
 clean:
 	rm -rf ${TARGET_DIR}
