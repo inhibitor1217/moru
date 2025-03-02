@@ -44,6 +44,7 @@ func announcementPacket(peer Peer) []byte {
 				Address:  peer.Address,
 				Username: peer.Username,
 				Hostname: peer.Hostname,
+				Role:     peer.Role,
 			},
 		},
 	})

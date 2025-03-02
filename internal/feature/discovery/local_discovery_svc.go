@@ -58,6 +58,7 @@ func NewLocalDiscoverySvc(
 	me.ID = randomPeerID()
 	me.SessionID = randomSessionID()
 	me.Address = advertisedAddress
+	me.Role = cfg.Application.Role.String()
 	if osUser, err := user.Current(); err == nil {
 		me.Username = &osUser.Username
 	}
@@ -93,8 +94,10 @@ func (s *localDiscoverySvc) Start(ctx context.Context) error {
 	s.log.Info("starting LAN discovery service",
 		"me.id", s.me.ID,
 		"me.sessionID", s.me.SessionID,
+		"me.address", s.me.Address,
 		"me.username", lo.FromPtr(s.me.Username),
-		"me.hostname", lo.FromPtr(s.me.Hostname))
+		"me.hostname", lo.FromPtr(s.me.Hostname),
+		"me.role", s.me.Role)
 
 	bgCtx := context.WithoutCancel(ctx)
 
@@ -234,6 +237,7 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			Address:   payload.Announcement.Address,
 			Username:  payload.Announcement.Username,
 			Hostname:  payload.Announcement.Hostname,
+			Role:      payload.Announcement.Role,
 			FoundAt:   time.Now(),
 			ExpireAt:  time.Now().Add(AnnouncementTTL),
 		}
@@ -243,6 +247,7 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			"peer.address", peer.Address,
 			"peer.username", lo.FromPtr(peer.Username),
 			"peer.hostname", lo.FromPtr(peer.Hostname),
+			"peer.role", peer.Role,
 			"membership.size", s.membership.Size())
 	}
 

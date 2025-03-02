@@ -19,4 +19,5 @@ message Announcement {
     string address = 1; // TCP address where the peer is listening on.
     optional string username = 2; // Username of the peer.
     optional string hostname = 3; // Hostname of the peer.
+    string role = 4; // Role of the peer (host, peer)
 }
