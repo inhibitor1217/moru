@@ -25,11 +25,12 @@ const (
 // localDiscoverySvc is a DiscoverySvc that works in LAN.
 type localDiscoverySvc struct {
 	me         Peer
+	packetSeq  int64
 	membership *membership
 
+	mu                 sync.Mutex
 	started            bool
 	stopped            bool
-	mu                 sync.Mutex
 	stop               chan struct{}
 	announcementLoopWg sync.WaitGroup
 	listenerLoopWg     sync.WaitGroup
@@ -176,7 +177,8 @@ func (s *localDiscoverySvc) announcementLoop(ctx context.Context) {
 func (s *localDiscoverySvc) announce(ctx context.Context) error {
 	// to mitigate UDP packet loss, we send this packet multiple times
 	for range 5 {
-		pkt := announcementPacket(s.me)
+		pkt := announcementPacket(s.me, s.packetSeq)
+		s.packetSeq++
 		if err := s.beacon.Send(ctx, pkt); err != nil {
 			return err
 		}
@@ -239,7 +241,9 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 
 	s.log.DebugContext(ctx, "received message",
 		"remote.peerID", remotePeerID,
-		"remote.sessionID", msg.SessionId)
+		"remote.sessionID", msg.SessionId,
+		"seqnum", msg.Seqnum,
+		"timestamp", time.UnixMilli(msg.Timestamp))
 
 	switch payload := msg.Payload.(type) {
 	case *discovery.Message_Announcement:

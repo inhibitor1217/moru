@@ -3,6 +3,7 @@ package discovery
 import (
 	"encoding/binary"
 	"errors"
+	"time"
 
 	"github.com/inhibitor1217/moru/proto/discovery"
 	"google.golang.org/protobuf/proto"
@@ -35,10 +36,12 @@ func parsePacket(buf []byte) (*discovery.Message, error) {
 	return msg, nil
 }
 
-func announcementPacket(peer Peer) []byte {
+func announcementPacket(peer Peer, seqnum int64) []byte {
 	return makePacket(&discovery.Message{
 		Id:        peer.ID[:],
 		SessionId: peer.SessionID,
+		Seqnum:    seqnum,
+		Timestamp: time.Now().UnixMilli(),
 		Payload: &discovery.Message_Announcement{
 			Announcement: &discovery.Announcement{
 				Peer: &discovery.Peer{
