@@ -65,10 +65,16 @@ func NewLocalDiscoverySvc(
 	if hostname, err := os.Hostname(); err == nil {
 		me.Hostname = &hostname
 	}
+	me.FoundAt = time.Now()
+	me.ExpireAt = time.Now().Add(AnnouncementTTL)
+
+	membership := newMembership()
+	// discover myself
+	membership.Discover(me)
 
 	return &localDiscoverySvc{
 		me:         me,
-		membership: newMembership(),
+		membership: membership,
 
 		stop: make(chan struct{}),
 
@@ -168,8 +174,14 @@ func (s *localDiscoverySvc) announcementLoop(ctx context.Context) {
 }
 
 func (s *localDiscoverySvc) announce(ctx context.Context) error {
-	pkt := announcementPacket(s.me)
-	return s.beacon.Send(ctx, pkt)
+	// to mitigate UDP packet loss, we send this packet multiple times
+	for range 5 {
+		pkt := announcementPacket(s.me)
+		if err := s.beacon.Send(ctx, pkt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *localDiscoverySvc) listenerLoop(ctx context.Context) {
