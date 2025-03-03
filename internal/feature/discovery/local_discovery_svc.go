@@ -178,7 +178,7 @@ func (s *localDiscoverySvc) announce(ctx context.Context) error {
 	for range 5 {
 		pkt := announcementPacket(s.me, s.packetSeq)
 		s.packetSeq++
-		if err := s.beacon.Send(ctx, pkt); err != nil {
+		if err := s.beacon.Send(ctx, pkt, beacon.SendBroadcast); err != nil {
 			return err
 		}
 	}

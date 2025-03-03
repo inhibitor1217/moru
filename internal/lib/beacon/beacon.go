@@ -21,8 +21,26 @@ type Beacon interface {
 	Stop(ctx context.Context) error
 
 	// Send broadcasts a message to the local network.
-	Send(ctx context.Context, msg []byte) error
+	Send(ctx context.Context, msg []byte, opts ...SendOption) error
 
 	// Receive blocks until a message is received or the context is cancelled.
 	Receive(ctx context.Context) ([]byte, net.Addr, error)
+}
+
+type sendOpts struct {
+	broadcast bool
+	unicastIP net.IP
+}
+
+type SendOption func(*sendOpts)
+
+var SendBroadcast = func(opts *sendOpts) {
+	opts.broadcast = true
+}
+
+var SendUnicast = func(ip net.IP) SendOption {
+	return func(opts *sendOpts) {
+		opts.broadcast = false
+		opts.unicastIP = ip
+	}
 }

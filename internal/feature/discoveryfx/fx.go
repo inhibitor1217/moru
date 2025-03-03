@@ -12,12 +12,12 @@ import (
 var Module = fx.Module(
 	"discovery",
 
-	fx.Provide(func(cfg *env.Config) beacon.UDPBroadcastConfig {
-		return beacon.UDPBroadcastConfig{
+	fx.Provide(func(cfg *env.Config) beacon.UDPBeaconConfig {
+		return beacon.UDPBeaconConfig{
 			Port: cfg.Discovery.Port,
 		}
 	}),
-	fx.Provide(beacon.NewUDPBroadcast),
+	fx.Provide(beacon.NewUDPBeacon),
 	fx.Provide(discovery.NewLocalDiscoverySvc),
 
 	fx.Invoke(func(lc fx.Lifecycle, s discovery.DiscoverySvc) {

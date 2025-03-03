@@ -56,3 +56,45 @@ func announcementPacket(peer Peer, seqnum int64) []byte {
 		},
 	})
 }
+
+func helloRequestPacket(peer Peer, seqnum int64) []byte {
+	return makePacket(&discovery.Message{
+		Id:        peer.ID[:],
+		SessionId: peer.SessionID,
+		Seqnum:    seqnum,
+		Timestamp: time.Now().UnixMilli(),
+		Payload: &discovery.Message_HelloRequest{
+			HelloRequest: &discovery.HelloRequest{
+				Peer: &discovery.Peer{
+					Id:        peer.ID[:],
+					SessionId: peer.SessionID,
+					Address:   peer.Address,
+					Username:  peer.Username,
+					Hostname:  peer.Hostname,
+					Role:      peer.Role,
+				},
+			},
+		},
+	})
+}
+
+func helloResultPacket(peer Peer, seqnum int64) []byte {
+	return makePacket(&discovery.Message{
+		Id:        peer.ID[:],
+		SessionId: peer.SessionID,
+		Seqnum:    seqnum,
+		Timestamp: time.Now().UnixMilli(),
+		Payload: &discovery.Message_HelloResult{
+			HelloResult: &discovery.HelloResult{
+				Peer: &discovery.Peer{
+					Id:        peer.ID[:],
+					SessionId: peer.SessionID,
+					Address:   peer.Address,
+					Username:  peer.Username,
+					Hostname:  peer.Hostname,
+					Role:      peer.Role,
+				},
+			},
+		},
+	})
+}
