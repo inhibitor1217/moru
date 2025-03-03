@@ -18,11 +18,20 @@ func newMembership() *membership {
 	}
 }
 
-func (m *membership) Discover(peer Peer) {
+func (m *membership) Discover(peer Peer) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	var newPeer = true
+	if old, ok := m.peers[peer.ID]; ok {
+		if old.SessionID == peer.SessionID &&
+			old.ExpireAt.After(time.Now()) {
+			newPeer = false
+		}
+	}
+
 	m.peers[peer.ID] = peer
+	return newPeer
 }
 
 func (m *membership) Peers() []Peer {

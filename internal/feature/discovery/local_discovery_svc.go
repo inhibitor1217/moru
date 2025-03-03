@@ -175,9 +175,14 @@ func (s *localDiscoverySvc) announcementLoop(ctx context.Context) {
 }
 
 func (s *localDiscoverySvc) announce(ctx context.Context) error {
-	pkt := announcementPacket(s.me, s.packetSeq)
-	s.packetSeq++
-	return s.beacon.Send(ctx, pkt)
+	for range 5 {
+		pkt := announcementPacket(s.me, s.packetSeq)
+		s.packetSeq++
+		if err := s.beacon.Send(ctx, pkt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *localDiscoverySvc) listenerLoop(ctx context.Context) {
@@ -251,7 +256,9 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			FoundAt:   time.Now(),
 			ExpireAt:  time.Now().Add(AnnouncementTTL),
 		}
-		s.membership.Discover(peer)
+
+		newPeer := s.membership.Discover(peer)
+
 		s.log.DebugContext(ctx, "discovered peer",
 			"peer.id", peer.ID,
 			"peer.address", peer.Address,
@@ -259,6 +266,10 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			"peer.hostname", lo.FromPtr(peer.Hostname),
 			"peer.role", peer.Role,
 			"membership.size", s.membership.Size())
+
+		if newPeer {
+			_ = s.Refresh(ctx)
+		}
 	}
 
 	return nil
