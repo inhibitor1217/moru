@@ -175,15 +175,9 @@ func (s *localDiscoverySvc) announcementLoop(ctx context.Context) {
 }
 
 func (s *localDiscoverySvc) announce(ctx context.Context) error {
-	// to mitigate UDP packet loss, we send this packet multiple times
-	for range 5 {
-		pkt := announcementPacket(s.me, s.packetSeq)
-		s.packetSeq++
-		if err := s.beacon.Send(ctx, pkt); err != nil {
-			return err
-		}
-	}
-	return nil
+	pkt := announcementPacket(s.me, s.packetSeq)
+	s.packetSeq++
+	return s.beacon.Send(ctx, pkt)
 }
 
 func (s *localDiscoverySvc) listenerLoop(ctx context.Context) {

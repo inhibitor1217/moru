@@ -152,6 +152,11 @@ func (b *udpBroadcast) senderLoop(ctx context.Context) {
 	}
 	defer conn.Close()
 
+	if err = conn.SetWriteBuffer(64 * 1024); err != nil {
+		b.log.ErrorContext(ctx, "failed to set write buffer", "error", err)
+		return
+	}
+
 	for {
 		select {
 		case msg := <-b.inbox:
@@ -183,6 +188,11 @@ func (b *udpBroadcast) receiverLoop(ctx context.Context) {
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: b.cfg.Port})
 	if err != nil {
 		b.log.ErrorContext(ctx, "failed to listen UDP", "error", err)
+		return
+	}
+
+	if err = conn.SetReadBuffer(64 * 1024); err != nil {
+		b.log.ErrorContext(ctx, "failed to set read buffer", "error", err)
 		return
 	}
 
