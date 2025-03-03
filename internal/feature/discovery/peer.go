@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"errors"
+	"net"
 	"strings"
 	"time"
 	"unsafe"
@@ -51,10 +52,11 @@ func (id PeerID) Bytes() []byte {
 type Peer struct {
 	ID        PeerID    // Unique identifier of the peer device.
 	SessionID int64     // Randomly generated session ID. We can identify whether the peer process restarted by this.
-	Address   string    // IP address of the peer device.
+	Address   net.IP    // IP address of the peer device.
 	Username  *string   // Username of the peer device.
 	Hostname  *string   // Hostname of the peer device.
 	Role      string    // Role of the peer device.
+	HostURL   *string   // Host HTTP server URL.
 	FoundAt   time.Time // Time when the peer was discovered.
 	ExpireAt  time.Time // Time when the peer will be removed from the known peers list.
 }

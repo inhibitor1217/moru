@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/user"
 	"sync"
@@ -20,6 +21,9 @@ import (
 const (
 	BroadcastInterval = 30 * time.Second
 	AnnouncementTTL   = 3 * BroadcastInterval
+
+	HelloInterval = 30 * time.Second
+	HelloTTL      = 3 * HelloInterval
 )
 
 // localDiscoverySvc is a DiscoverySvc that works in LAN.
@@ -49,16 +53,21 @@ func NewLocalDiscoverySvc(
 ) (DiscoverySvc, error) {
 	me := Peer{}
 	listeningIPs := network.LANAddresses()
-	var advertisedAddress string
-	if cfg.Application.Role == env.RoleHost && len(listeningIPs) > 0 {
-		advertisedIP := listeningIPs[0]
+
+	var advertisedIP net.IP
+	var advertisedHostURL *string
+
+	if len(listeningIPs) > 0 {
+		advertisedIP = listeningIPs[0]
 		// TODO support HTTPS via self-signed certificate
-		advertisedAddress = fmt.Sprintf("http://%s:%d", advertisedIP, cfg.HTTP.Port)
+		if cfg.Application.Role == env.RoleHost {
+			advertisedHostURL = lo.ToPtr(fmt.Sprintf("http://%s:%d", advertisedIP, cfg.HTTP.Port))
+		}
 	}
 
 	me.ID = randomPeerID()
 	me.SessionID = randomSessionID()
-	me.Address = advertisedAddress
+	me.Address = advertisedIP
 	me.Role = cfg.Application.Role.String()
 	if osUser, err := user.Current(); err == nil {
 		me.Username = &osUser.Username
@@ -66,11 +75,11 @@ func NewLocalDiscoverySvc(
 	if hostname, err := os.Hostname(); err == nil {
 		me.Hostname = &hostname
 	}
+	me.HostURL = advertisedHostURL
 	me.FoundAt = time.Now()
 	me.ExpireAt = time.Now().Add(AnnouncementTTL)
 
 	membership := newMembership()
-	// discover myself
 	membership.Discover(me)
 
 	return &localDiscoverySvc{
@@ -185,6 +194,18 @@ func (s *localDiscoverySvc) announce(ctx context.Context) error {
 	return nil
 }
 
+func (s *localDiscoverySvc) sayHello(ctx context.Context, peer Peer) error {
+	pkt := helloRequestPacket(s.me, s.packetSeq)
+	s.packetSeq++
+	return s.beacon.Send(ctx, pkt, beacon.SendUnicast(peer.Address))
+}
+
+func (s *localDiscoverySvc) replyHello(ctx context.Context, peer Peer) error {
+	pkt := helloResultPacket(s.me, s.packetSeq)
+	s.packetSeq++
+	return s.beacon.Send(ctx, pkt, beacon.SendUnicast(peer.Address))
+}
+
 func (s *localDiscoverySvc) listenerLoop(ctx context.Context) {
 	s.log.InfoContext(ctx, "starting discovery listener loop")
 	defer s.log.InfoContext(ctx, "stopping discovery listener loop")
@@ -238,6 +259,11 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 		return fmt.Errorf("failed to parse peer ID: %w", err)
 	}
 
+	if remotePeerID == s.me.ID {
+		// ignore messages from myself
+		return nil
+	}
+
 	s.log.DebugContext(ctx, "received message",
 		"remote.peerID", remotePeerID,
 		"remote.sessionID", msg.SessionId,
@@ -249,10 +275,11 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 		peer := Peer{
 			ID:        remotePeerID,
 			SessionID: msg.SessionId,
-			Address:   payload.Announcement.Peer.Address,
+			Address:   net.ParseIP(payload.Announcement.Peer.Address),
 			Username:  payload.Announcement.Peer.Username,
 			Hostname:  payload.Announcement.Peer.Hostname,
 			Role:      payload.Announcement.Peer.Role,
+			HostURL:   payload.Announcement.Peer.HostUrl,
 			FoundAt:   time.Now(),
 			ExpireAt:  time.Now().Add(AnnouncementTTL),
 		}
@@ -269,7 +296,54 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 
 		if newPeer {
 			_ = s.Refresh(ctx)
+			_ = s.sayHello(ctx, peer)
 		}
+	case *discovery.Message_HelloRequest:
+		peer := Peer{
+			ID:        remotePeerID,
+			SessionID: msg.SessionId,
+			Address:   net.ParseIP(payload.HelloRequest.Peer.Address),
+			Username:  payload.HelloRequest.Peer.Username,
+			Hostname:  payload.HelloRequest.Peer.Hostname,
+			Role:      payload.HelloRequest.Peer.Role,
+			HostURL:   payload.HelloRequest.Peer.HostUrl,
+			FoundAt:   time.Now(),
+			ExpireAt:  time.Now().Add(HelloTTL),
+		}
+
+		_ = s.membership.Discover(peer)
+
+		s.log.DebugContext(ctx, "received hello request",
+			"peer.id", peer.ID,
+			"peer.address", peer.Address,
+			"peer.username", lo.FromPtr(peer.Username),
+			"peer.hostname", lo.FromPtr(peer.Hostname),
+			"peer.role", peer.Role,
+			"membership.size", s.membership.Size())
+
+		_ = s.replyHello(ctx, peer)
+	case *discovery.Message_HelloResult:
+		peer := Peer{
+			ID:        remotePeerID,
+			SessionID: msg.SessionId,
+			Address:   net.ParseIP(payload.HelloResult.Peer.Address),
+			Username:  payload.HelloResult.Peer.Username,
+			Hostname:  payload.HelloResult.Peer.Hostname,
+			Role:      payload.HelloResult.Peer.Role,
+			HostURL:   payload.HelloResult.Peer.HostUrl,
+			FoundAt:   time.Now(),
+			ExpireAt:  time.Now().Add(HelloTTL),
+		}
+
+		_ = s.membership.Discover(peer)
+
+		s.log.DebugContext(ctx, "received hello reply",
+			"peer.id", peer.ID,
+			"peer.address", peer.Address,
+			"peer.username", lo.FromPtr(peer.Username),
+			"peer.hostname", lo.FromPtr(peer.Hostname),
+			"peer.role", peer.Role,
+			"membership.size", s.membership.Size())
 	}
 
 	return nil

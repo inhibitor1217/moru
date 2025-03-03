@@ -29,10 +29,11 @@ func (m *moru) knownPeers(
 		res.Peers = append(res.Peers, &discoverypb.Peer{
 			Id:        peer.ID.Bytes(),
 			SessionId: peer.SessionID,
-			Address:   peer.Address,
+			Address:   peer.Address.String(),
 			Username:  peer.Username,
 			Hostname:  peer.Hostname,
 			Role:      peer.Role,
+			HostUrl:   peer.HostURL,
 		})
 	}
 
