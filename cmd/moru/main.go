@@ -61,6 +61,11 @@ func moru_init() {
 		}),
 
 		envfx.Option,
+		// override cfg
+		fx.Decorate(func(cfg *env.Config) *env.Config {
+			cfg.Application.Role = env.RolePeer
+			return cfg
+		}),
 
 		corefx.Module,
 		discoveryfx.Module,
