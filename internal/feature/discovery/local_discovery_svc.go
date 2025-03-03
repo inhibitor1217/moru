@@ -246,29 +246,31 @@ func (s *localDiscoverySvc) listenerLoop(ctx context.Context) {
 			continue
 		}
 
-		if err := s.handleMessage(ctx, msg); err != nil {
+		if err := s.handleMessage(ctx, remoteAddress, msg); err != nil {
 			s.log.ErrorContext(ctx, "failed to handle message", "err", err)
 			continue
 		}
 	}
 }
 
-func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Message) error {
+func (s *localDiscoverySvc) handleMessage(ctx context.Context, remoteAddr net.Addr, msg *discovery.Message) error {
 	remotePeerID, err := PeerIDFromBytes(msg.Id)
 	if err != nil {
 		return fmt.Errorf("failed to parse peer ID: %w", err)
 	}
 
-	if remotePeerID == s.me.ID {
-		// ignore messages from myself
-		return nil
-	}
-
 	s.log.DebugContext(ctx, "received message",
+		"remote.address", remoteAddr,
 		"remote.peerID", remotePeerID,
 		"remote.sessionID", msg.SessionId,
 		"seqnum", msg.Seqnum,
 		"timestamp", time.UnixMilli(msg.Timestamp))
+
+	// try to parse the remote address (ip:port)
+	var remoteIP string
+	if ip, _, err := net.SplitHostPort(remoteAddr.String()); err == nil {
+		remoteIP = ip
+	}
 
 	switch payload := msg.Payload.(type) {
 	case *discovery.Message_Announcement:
@@ -282,6 +284,11 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			HostURL:   payload.Announcement.Peer.HostUrl,
 			FoundAt:   time.Now(),
 			ExpireAt:  time.Now().Add(AnnouncementTTL),
+		}
+
+		// best effort to fill peer address
+		if peer.Address == nil {
+			peer.Address = net.ParseIP(remoteIP)
 		}
 
 		newPeer := s.membership.Discover(peer)
@@ -299,6 +306,10 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 			_ = s.sayHello(ctx, peer)
 		}
 	case *discovery.Message_HelloRequest:
+		if remotePeerID == s.me.ID {
+			return nil
+		}
+
 		peer := Peer{
 			ID:        remotePeerID,
 			SessionID: msg.SessionId,
@@ -323,6 +334,10 @@ func (s *localDiscoverySvc) handleMessage(ctx context.Context, msg *discovery.Me
 
 		_ = s.replyHello(ctx, peer)
 	case *discovery.Message_HelloResult:
+		if remotePeerID == s.me.ID {
+			return nil
+		}
+
 		peer := Peer{
 			ID:        remotePeerID,
 			SessionID: msg.SessionId,

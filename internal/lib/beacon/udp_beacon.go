@@ -80,7 +80,7 @@ func (b *udpBeacon) Start(ctx context.Context) error {
 	}
 	b.started = true
 
-	b.log.InfoContext(ctx, "starting UDP broadcast beacon")
+	b.log.InfoContext(ctx, "starting UDP beacon")
 
 	bgCtx := context.WithoutCancel(ctx)
 
